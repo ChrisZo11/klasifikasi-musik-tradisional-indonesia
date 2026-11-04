@@ -1,0 +1,48 @@
+{
+  "label_mode": "regional",
+  "label2id": {
+    "Bali_Nusa_Tenggara": 0,
+    "Jawa": 1,
+    "Kalimantan": 2,
+    "Maluku": 3,
+    "Papua": 4,
+    "Sulawesi": 5,
+    "Sumatera": 6
+  },
+  "id2label": {
+    "0": "Bali_Nusa_Tenggara",
+    "1": "Jawa",
+    "2": "Kalimantan",
+    "3": "Maluku",
+    "4": "Papua",
+    "5": "Sulawesi",
+    "6": "Sumatera"
+  },
+  "train_chunk_counts": {
+    "Bali_Nusa_Tenggara": 7858,
+    "Jawa": 12347,
+    "Kalimantan": 8220,
+    "Maluku": 3719,
+    "Papua": 4142,
+    "Sulawesi": 8068,
+    "Sumatera": 20849
+  },
+  "class_weights": {
+    "Bali_Nusa_Tenggara": 1.1853797767516272,
+    "Jawa": 0.7544111351513959,
+    "Kalimantan": 1.1331769204031978,
+    "Maluku": 2.50462874044482,
+    "Papua": 2.248844588535559,
+    "Sulawesi": 1.1545258162759402,
+    "Sumatera": 0.44677031443782844
+  },
+  "weights_by_id": [
+    1.1853797767516272,
+    0.7544111351513959,
+    1.1331769204031978,
+    2.50462874044482,
+    2.248844588535559,
+    1.1545258162759402,
+    0.44677031443782844
+  ]
+}
