@@ -10,7 +10,7 @@
 [![Librosa](https://img.shields.io/badge/Librosa-0.10-4B8BBE?style=flat-square)](https://librosa.org/)
 [![Status](https://img.shields.io/badge/status-dalam%20pengerjaan-orange?style=flat-square)](#roadmap)
 
-[Ringkasan](#ringkasan) · [Dataset](#dataset) · [Metodologi](#metodologi) · [Model](#model) · [Analisis Eksplorasi](#analisis-eksplorasi) · [Memulai](#memulai) · [Roadmap](#roadmap)
+[Ringkasan](#ringkasan) · [Dataset](#dataset) · [Metodologi](#metodologi) · [Model](#model) · [Hasil](#hasil-eksperimen) · [Analisis Eksplorasi](#analisis-eksplorasi) · [Memulai](#memulai) · [Berkontribusi](#berkontribusi) · [Roadmap](#roadmap)
 
 </div>
 
@@ -53,6 +53,71 @@ Pengelompokan wilayah menurunkan ketimpangan jumlah lagu antar kelas dari **78 :
 
 > [!NOTE]
 > Berkas audio tidak disimpan di repositori ini. Dataset lengkap tersedia di [Google Drive](https://drive.google.com/drive/folders/1KSv0_nllF87kADHO6I5xPUZ02q7meFsl?usp=sharing). Folder [`metadata/`](metadata/) berisi indeks klip, pembagian data per lagu, dan bobot kelas yang dibutuhkan untuk mereproduksi eksperimen.
+
+### Format Metadata
+
+Folder [`metadata/`](metadata/) berisi tiga berkas yang menjadi acuan seluruh eksperimen.
+
+**`metadata.csv`** — satu baris per klip 5 detik (78.074 baris).
+
+| Kolom | Keterangan |
+| :--- | :--- |
+| `chunk_path` | Lokasi klip `.wav` hasil segmentasi, relatif terhadap root repositori |
+| `song_id` | ID lagu asal klip (`<Provinsi>__<nomor>_<judul>`) |
+| `original_file` | Lokasi rekaman mentah `.m4a` |
+| `provinsi` | Provinsi asal lagu |
+| `label` | Wilayah budaya (kelas target) |
+| `split` | Partisi data: `train`, `val`, atau `test` |
+| `start_sec` | Waktu mulai klip di dalam lagu (detik) |
+| `padded` | `True` jika klip diberi *zero-padding* pada sisa lagu |
+
+**`song_split.csv`** — satu baris per lagu (855 baris) dengan kolom `song_id`, `original_file`, `provinsi`, `label`, dan `split`. Berkas ini menjadi sumber kebenaran pembagian data di tingkat lagu.
+
+**`class_weights.json`** — pemetaan label dan bobot kelas.
+
+| ID | Label |
+| :---: | :--- |
+| 0 | Bali_Nusa_Tenggara |
+| 1 | Jawa |
+| 2 | Kalimantan |
+| 3 | Maluku |
+| 4 | Papua |
+| 5 | Sulawesi |
+| 6 | Sumatera |
+
+Contoh membaca metadata:
+
+```python
+import json
+import pandas as pd
+
+meta = pd.read_csv("metadata/metadata.csv")
+train = meta[meta["split"] == "train"]
+
+with open("metadata/class_weights.json") as f:
+    cfg = json.load(f)
+
+label2id = cfg["label2id"]
+weights = cfg["class_weights"]
+```
+
+### Pengumpulan Data
+
+Audio dikumpulkan dengan [`scripts/scraper_youtube_audio.py`](scripts/scraper_youtube_audio.py), yaitu *scraper* berbasis `yt-dlp` yang menyaring kandidat video secara ketat (menolak remix, cover, medley, dan konten non-lagu), mewajibkan kemiripan judul, serta memprioritaskan rilisan studio resmi.
+
+<div align="center">
+  <img src="assets/diagrams/scraper_flowchart.png" alt="Diagram alur scraper audio" width="85%">
+</div>
+
+<br>
+
+```bash
+# Uji coba tanpa mengunduh
+python scripts/scraper_youtube_audio.py --dry-run --limit 5
+```
+
+> [!NOTE]
+> *Scraper* membaca daftar lagu dari `data/daftar_lagu_daerah.csv` (bawaan `--csv`), yang tidak disertakan di repositori. Untuk mereproduksi eksperimen, cukup gunakan dataset dari Google Drive di atas. Jalankan `python scripts/scraper_youtube_audio.py --help` untuk melihat seluruh opsi.
 
 ---
 
@@ -119,6 +184,20 @@ waveform → CNN feature encoder → Transformer encoder (T × 768)
          → temporal mean pooling → Linear(768, 256) → GELU → LayerNorm
          → Dropout → Linear(256, 7)
 ```
+
+---
+
+## Hasil Eksperimen
+
+> [!IMPORTANT]
+> Fine-tuning dan evaluasi masih dalam pengerjaan. Tabel di bawah akan diisi setelah eksperimen selesai (lihat [Roadmap](#roadmap)).
+
+| Model | Level | Akurasi | Macro F1 | Weighted F1 |
+| :--- | :--- | :---: | :---: | :---: |
+| Wav2Vec 2.0 | Klip | – | – | – |
+| Wav2Vec 2.0 | Lagu | – | – | – |
+| HuBERT | Klip | – | – | – |
+| HuBERT | Lagu | – | – | – |
 
 ---
 
@@ -191,6 +270,72 @@ processed/     # klip .wav 5 detik (train / val / test)
 
 Lalu jalankan notebook secara berurutan, dimulai dari `notebooks/01_eda.ipynb`.
 
+### Pemecahan Masalah
+
+<details>
+<summary><b>FFmpeg tidak ditemukan</b></summary>
+
+<br>
+
+Pastikan `ffmpeg -version` berjalan di terminal. Jika belum terpasang:
+
+```bash
+# Windows (winget)
+winget install Gyan.FFmpeg
+
+# macOS (Homebrew)
+brew install ffmpeg
+
+# Ubuntu / Debian
+sudo apt install ffmpeg
+```
+
+Setelah instalasi, buka ulang terminal agar `PATH` diperbarui.
+
+</details>
+
+<details>
+<summary><b>Notebook tidak menemukan folder <code>data/</code> atau <code>processed/</code></b></summary>
+
+<br>
+
+Kedua folder harus berada di **root repositori**, sejajar dengan `notebooks/` dan `metadata/`, bukan di dalam `notebooks/`. Path pada `metadata.csv` bersifat relatif terhadap root.
+
+</details>
+
+<details>
+<summary><b>Instalasi PyTorch lambat atau tidak memakai GPU</b></summary>
+
+<br>
+
+Untuk GPU NVIDIA, pasang PyTorch sesuai versi CUDA Anda mengikuti panduan di [pytorch.org](https://pytorch.org/get-started/locally/) sebelum menjalankan `pip install -r requirements.txt`.
+
+</details>
+
+---
+
+## Berkontribusi
+
+Kontribusi dalam bentuk kode, dokumentasi, maupun perbaikan dataset sangat disambut.
+
+1. *Fork* repositori ini, atau minta akses *collaborator* kepada pemilik repositori.
+2. Buat *branch* baru dari `main` dengan nama yang menjelaskan perubahan:
+   ```bash
+   git checkout -b docs/nama-perubahan
+   ```
+3. Lakukan perubahan, lalu *commit* dengan pesan yang singkat dan jelas:
+   ```bash
+   git commit -m "docs: tambah penjelasan format metadata"
+   ```
+4. *Push* *branch* dan buka *Pull Request* ke `main`. Jelaskan apa yang diubah dan alasannya.
+
+**Panduan singkat**
+
+- Jangan meng-*commit* berkas audio, dataset, atau bobot model berukuran besar. Gunakan tautan eksternal seperti Google Drive.
+- Jangan mengubah `metadata/song_split.csv` tanpa diskusi, karena seluruh hasil eksperimen bergantung pada pembagian data ini.
+- Bersihkan keluaran sel (*clear outputs*) pada notebook sebelum *commit* jika perubahan tidak berkaitan dengan hasil.
+- Gunakan awalan pesan *commit* seperti `docs:`, `feat:`, `fix:`, atau `refactor:`.
+
 ---
 
 ## Roadmap
@@ -198,9 +343,11 @@ Lalu jalankan notebook secara berurutan, dimulai dari `notebooks/01_eda.ipynb`.
 - [x] Akuisisi dan kurasi audio (855 lagu, 38 provinsi)
 - [x] Analisis data eksploratif
 - [x] Pipeline pembagian data per lagu dan segmentasi
+- [x] Dokumentasi repositori (format metadata, panduan kontribusi)
 - [ ] Fine-tuning Wav2Vec 2.0
 - [ ] Fine-tuning HuBERT
 - [ ] Evaluasi komparatif pada level klip dan lagu
+- [ ] Skrip inferensi untuk memprediksi wilayah dari satu berkas audio
 
 ---
 
